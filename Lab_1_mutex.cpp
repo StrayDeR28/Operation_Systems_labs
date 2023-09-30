@@ -25,11 +25,11 @@ void Provide(list<int> x)
     this_thread::sleep_for(chrono::seconds(1));
     int temp = *x.begin();
     x.pop_front();
-    uniqueLock1.unlock();
     hub = temp;
     cout << "Sended element: " << hub << "   Thread id: " << this_thread::get_id() << "\n";
     ready = false;
     condVar.notify_all();
+    uniqueLock1.unlock();
     if (!x.empty()) 
     {
         Provide(x);
@@ -42,10 +42,10 @@ void Consume()
     condVar.wait(uniqueLock2, predF);
     endList.push_front(hub);
     cout << "Recieved element: " << *endList.begin() << "   Thread id: " << this_thread::get_id() << "\n";
-    uniqueLock2.unlock();
     if (endList.size() == startList.size()) { return; };
     ready = true;
     condVar.notify_all();
+    uniqueLock2.unlock();
     Consume();
 }
 int main()
