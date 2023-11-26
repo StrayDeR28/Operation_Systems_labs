@@ -11,8 +11,9 @@ int main() {
     struct sockaddr_in serverAddr;
 
     clientSocket = socket(AF_INET, SOCK_STREAM, 0);
-    if (clientSocket < 0) {
-        std::cerr << "Error creating socket" << std::endl;
+    if (clientSocket < 0) 
+    {
+        std::cout << "Error creating socket" << std::endl;
         return 1;
     }
 
@@ -20,8 +21,9 @@ int main() {
     serverAddr.sin_port = htons(PORT);
     serverAddr.sin_addr.s_addr = INADDR_ANY;
 
-    if (connect(clientSocket, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) < 0) {
-        std::cerr << "Error connecting to server" << std::endl;
+    if (connect(clientSocket, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) < 0) 
+    {
+        std::cout << "Error connecting to server" << std::endl;
         return 1;
     }
 
