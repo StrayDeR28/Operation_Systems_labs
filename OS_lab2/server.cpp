@@ -56,38 +56,14 @@ int main()
     sigset_t origMask;
     setupSignalHandling(&origMask);
     
-    int client_fd=0, max_fd;
+    int client_fd=-1, max_fd;
 	
     while (true) 
     {
         fd_set read_fds;
         FD_ZERO(&read_fds);
-        
+        FD_SET(server_fd, &read_fds);
         if (max_fd < server_fd) max_fd = server_fd + 1; 
-		if (client_fd!=0)
-		{
-			FD_SET (client_fd, &read_fds);
-		    if (max_fd < client_fd) {max_fd = client_fd + 1;}
-		    if (FD_ISSET(client_fd, &read_fds))
-		    {
-				char buffer[1024] = {0};
-				int valread = read(client_fd, buffer, 1024);
-				if (valread > 0) 
-				{
-					std::cout << "Message received: " << buffer << std::endl;
-				}
-				if (valread == 0)
-				{
-					std::cout << "No message received " << std::endl;
-				}
-			}
-			close (client_fd);
-			FD_CLR(client_fd, &read_fds);
-			client_fd = 0;
-			continue;
-		}
-		
-		FD_SET(server_fd, &read_fds);
         int activity = pselect(max_fd, &read_fds, NULL, NULL, NULL, &origMask);
         if ((activity < 0) && (errno != EINTR))
         {
@@ -113,6 +89,21 @@ int main()
             }
             std::cout << "New connection accepted" << std::endl;
 		}
+		if (FD_ISSET(client_fd, &read_fds))
+		{
+			char buffer[1024] = {0};
+			int valread = read(client_fd, buffer, 1024);
+			if (valread > 0) 
+			{
+				std::cout << "Message received: " << buffer << std::endl;
+			}
+			if (valread == 0)
+			{
+				std::cout << "No message received " << std::endl;
+			}
+		}
+		close (client_fd);
+		FD_CLR(client_fd, &read_fds);
     }
     close (client_fd);
     close (server_fd);
