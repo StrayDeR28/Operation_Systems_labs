@@ -66,6 +66,7 @@ int main()
         FD_SET(server_fd, &read_fds);
         if (max_fd < server_fd) max_fd = server_fd + 1;
 		if (max_fd < client_fd) max_fd = client_fd + 1;
+		if (client_fd != -1) FD_SET(client_fd, &read_fds);
         int activity = pselect(max_fd, &read_fds, NULL, NULL, NULL, &origMask);
         if ((activity < 0) && (errno != EINTR))
         {
@@ -89,7 +90,6 @@ int main()
                 std::cout << "Accept failed" << std::endl;
                 return 1;
             }
-            FD_SET(client_fd, &read_fds);
             std::cout << "New connection accepted" << std::endl;
 		}
 		if (FD_ISSET(client_fd, &read_fds))
