@@ -7,7 +7,7 @@
 #include <sys/time.h>
 #include <arpa/inet.h>
 
-#define PORT 9999
+#define PORT 8888
 volatile sig_atomic_t wasSigHup = 0;
 
 void sigHupHandler(int r)
@@ -60,10 +60,12 @@ int main()
 	
     while (true) 
     {
+		max_fd = 0;
         fd_set read_fds;
         FD_ZERO(&read_fds);
         FD_SET(server_fd, &read_fds);
-        if (max_fd < server_fd) max_fd = server_fd + 1; 
+        if (max_fd < server_fd) max_fd = server_fd + 1;
+		if (max_fd < client_fd) max_fd = client_fd + 1;
         int activity = pselect(max_fd, &read_fds, NULL, NULL, NULL, &origMask);
         if ((activity < 0) && (errno != EINTR))
         {
@@ -87,6 +89,7 @@ int main()
                 std::cout << "Accept failed" << std::endl;
                 return 1;
             }
+            FD_SET(client_fd, &read_fds);
             std::cout << "New connection accepted" << std::endl;
 		}
 		if (FD_ISSET(client_fd, &read_fds))
