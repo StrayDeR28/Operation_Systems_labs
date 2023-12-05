@@ -7,7 +7,8 @@
 #include <sys/time.h>
 #include <arpa/inet.h>
 
-#define PORT 9999
+#define PORT 8888
+#define MAX_CLIENTS 5
 volatile sig_atomic_t wasSigHup = 0;
 
 void sigHupHandler(int r)
@@ -56,6 +57,11 @@ int main()
     sigset_t origMask;
     setupSignalHandling(&origMask);
     
+    int client_fds[MAX_CLIENTS];
+    for (int i = 0; i < MAX_CLIENTS; i++) {
+        client_fds[i] = -1;
+    }
+    
     int client_fd=-1, max_fd;
 	
     while (true) 
@@ -65,9 +71,18 @@ int main()
         FD_ZERO(&read_fds);
         FD_SET(server_fd, &read_fds);
         if (max_fd < server_fd) max_fd = server_fd + 1;
-		if (max_fd < client_fd) max_fd = client_fd + 1;
-		//std::cout << "cl1 = "<<client_fd << std::endl;
-		if (client_fd != -1) FD_SET(client_fd, &read_fds);
+        for (int i = 0; i < MAX_CLIENTS; ++i)
+        {
+            int client_fd = client_fds[i];
+            if (client_fd != -1)
+            {
+                FD_SET(client_fd,&read_fds);
+                if (client_fd > max_fd)
+                {
+                    max_fd = client_fd + 1;
+                }
+            }
+        }
         int activity = pselect(max_fd, &read_fds, NULL, NULL, NULL, &origMask);
         if ((activity < 0) && (errno != EINTR))
         {
@@ -91,25 +106,35 @@ int main()
                 std::cout << "Accept failed" << std::endl;
                 return 1;
             }
+            for (int i = 0; i < MAX_CLIENTS; ++i) 
+            {
+                if (client_fds[i] == -1) 
+                {
+                    client_fds[i] = client_fd;
+                    break;
+                }
+            }
             std::cout << "New connection accepted" << std::endl;
-            //std::cout << "cl = "<<client_fd << std::endl;
 		}
-		if (FD_ISSET(client_fd, &read_fds))
+		for (int i = 0; i < MAX_CLIENTS; i++) 
 		{
-			char buffer[1024] = {0};
-			int valread = read(client_fd, buffer, 1024);
-			if (valread > 0) 
+            int client_fd = client_fds[i];
+			if (client_fd != -1 && FD_ISSET(client_fd, &read_fds))
 			{
-				std::cout << "Message received: " << buffer << std::endl;
+				char buffer[1024] = {0};
+				int valread = read(client_fd, buffer, 1024);
+				if (valread <= 0)
+				{
+					std::cout << "Connection closed for client: " << client_fd<< std::endl;		
+					close (client_fd);
+					FD_CLR(client_fd, &read_fds);
+					client_fds[i]=-1;
+				}
+				if (valread > 0) 
+				{
+					std::cout << "Message received: " << buffer << std::endl;
+				}
 			}
-			if (valread == 0)
-			{
-				std::cout << "No message received " << std::endl;		
-				
-			}
-			close (client_fd);
-			FD_CLR(client_fd, &read_fds);
-			client_fd=-1;
 		}
     }
     return 0;
