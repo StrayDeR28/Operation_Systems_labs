@@ -8,7 +8,7 @@
 #include <linux/seq_file.h>
 #include <linux/jiffies.h>
 
-#define procfs_name "tsu"
+#define procfs_name "tsulab"
 
 static struct proc_dir_entry *our_proc_file = NULL;
 static unsigned long last_access_time;
@@ -16,16 +16,16 @@ static unsigned long last_access_time;
 static ssize_t procfile_read(struct file *file_pointer, char __user *buffer, size_t buffer_length, loff_t* offset)
 {
     unsigned long current_time = jiffies;
-    if (current_time - last_access_time > 10 * HZ) 
-    {
-        pr_info("1 File accessed more than 10 seconds ago\n");
-    } 
-    else 
-    {
-        pr_info("0 File accessed less than 10 seconds ago\n");
-    }
+    char s[64];  
+    ssize_t ret;
+    
+    if (current_time - last_access_time > 10 * HZ) { ret = sprintf(s, "1 File accessed more than 10 seconds ago\n");} 
+    else { ret = sprintf(s, "0 File accessed less than 10 seconds ago\n");}
     last_access_time = current_time;
-    return 0;
+    
+    if (*offset >= ret || copy_to_user(buffer, s, ret)) { ret = 0; } 
+    else { *offset += ret; }
+    return ret;
 }
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0)
 static const struct proc_ops proc_file_fops = 
